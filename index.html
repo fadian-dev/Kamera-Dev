@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Kamera iOS untuk itel S25</title>
+<style>
+:root{--bg:#000;--fg:#fff;--dim:rgba(255,255,255,.62);--glass:rgba(40,40,42,.55);--y:#ffd60a;--rec:#ff453a;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column}
+.top{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;height:52px}
+.chip{background:var(--glass);backdrop-filter:blur(14px);border:0;color:var(--fg);border-radius:18px;min-width:38px;height:34px;padding:0 12px;font-size:13px;font-weight:600}
+.chip.on{color:var(--y)}
+.stage{position:relative;flex:1;overflow:hidden;border-radius:18px;margin:0 6px;background:#111;min-height:0}
+.stage.sq{flex:none;aspect-ratio:1;align-self:stretch;margin-top:auto;margin-bottom:auto}
+video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:center;will-change:transform}
+.grid{position:absolute;inset:0;pointer-events:none;display:none;background:linear-gradient(to right,transparent 33.2%,rgba(255,255,255,.35) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,.35) 66.6%,transparent 66.8%),linear-gradient(to bottom,transparent 33.2%,rgba(255,255,255,.35) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,.35) 66.6%,transparent 66.8%)}
+.grid.on{display:block}
+.info{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:center;gap:6px;pointer-events:none}
+.tag{background:rgba(0,0,0,.45);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700}
+.tag.y{background:var(--y);color:#000}
+.timer{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:120px;font-weight:200;text-shadow:0 2px 20px #0008}
+.focus{position:absolute;width:70px;height:70px;border:1.5px solid var(--y);opacity:0;pointer-events:none;transform:scale(1.4);transition:transform .25s,opacity .3s}
+.focus.show{opacity:1;transform:scale(1)}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.zoom{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(0,0,0,.4);border-radius:24px;padding:4px}
+.zoom button{width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:#fff;font-size:12px;font-weight:600}
+.zoom button.on{background:rgba(0,0,0,.6);color:var(--y)}
+.modes{display:flex;justify-content:center;gap:22px;padding:12px 0 4px;font-size:14px;font-weight:600}
+.modes button{background:none;border:0;color:var(--dim);font:inherit;padding:4px 2px}
+.modes button.on{color:var(--y)}
+.bar{display:flex;align-items:center;justify-content:space-around;padding:8px 20px 16px;height:104px}
+.thumb{width:52px;height:52px;border-radius:10px;border:2px solid #444;background:#222 center/cover;padding:0}
+.shutter{width:76px;height:76px;border-radius:50%;border:4px solid #fff;background:transparent;padding:4px;display:grid;place-items:center}
+.shutter i{display:block;width:100%;height:100%;border-radius:50%;background:#fff;transition:transform .12s,border-radius .2s,background .2s}
+.shutter:active i{transform:scale(.88)}
+.shutter.vid i{background:var(--rec)}
+.shutter.recording i{width:34px;height:34px;border-radius:8px}
+.flip{width:52px;height:52px;border-radius:50%;background:var(--glass);border:0;color:#fff;font-size:22px}
+#err{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;gap:14px;background:#111;z-index:5}
+#err button{background:var(--y);color:#000;border:0;border-radius:22px;padding:12px 26px;font-weight:700;font-size:15px}
+#viewer{position:fixed;inset:0;background:#000;display:none;flex-direction:column;z-index:10;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#viewer.open{display:flex}
+.vtop,.vbot{display:flex;justify-content:space-between;align-items:center;padding:10px 14px}
+.vmain{flex:1;position:relative;min-height:0}
+.vmain img,.vmain canvas,.vmain video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.strip{display:flex;gap:6px;overflow-x:auto;padding:8px 12px}
+.strip div{flex:none;width:48px;height:48px;border-radius:8px;background:#222 center/cover;border:2px solid transparent}
+.strip div.on{border-color:var(--y)}
+.hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:12px;color:var(--dim)}
+.toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 62px);left:50%;transform:translateX(-50%);background:var(--glass);backdrop-filter:blur(14px);padding:8px 16px;border-radius:18px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:20}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top">
+    <button class="chip" id="bFlash" aria-label="Lampu kilat">⚡︎ Mati</button>
+    <button class="chip on" id="bLive" aria-label="Live Photo">◎ LIVE</button>
+    <button class="chip on" id="bStab" aria-label="Stabilizer">Stabil</button>
+    <button class="chip" id="bRes" aria-label="Resolusi">HD</button>
+    <button class="chip" id="bMore" aria-label="Lainnya">⋯</button>
+  </div>
+  <div class="stage" id="stage">
+    <video id="cam" autoplay playsinline muted></video>
+    <div class="grid" id="grid"></div>
+    <div class="info"><span class="tag y" id="tLive">LIVE</span><span class="tag" id="tInfo">1080p</span><span class="tag" id="tRec" style="display:none;background:var(--rec)">● 00:00</span></div>
+    <div class="focus" id="focus"></div>
+    <div class="timer" id="timer"></div>
+    <div class="flash" id="flash"></div>
+    <div class="zoom" id="zoom"><button data-z="1" class="on">1×</button><button data-z="2">2×</button><button data-z="3">3×</button></div>
+    <div id="err"><div style="font-size:42px">📷</div><div id="errMsg">Izinkan akses kamera untuk mulai.</div><button id="bStart">Aktifkan kamera</button></div>
+  </div>
+  <div class="modes" id="modes">
+    <button data-m="video">VIDEO</button><button data-m="foto" class="on">FOTO</button><button data-m="persegi">PERSEGI</button>
+  </div>
+  <div class="bar">
+    <button class="thumb" id="bThumb" aria-label="Galeri"></button>
+    <button class="shutter" id="bShot" aria-label="Rana"><i></i></button>
+    <button class="flip" id="bFlip" aria-label="Balik kamera">⟲</button>
+  </div>
+</div>
+
+<div id="viewer">
+  <div class="vtop"><button class="chip" id="vClose">Selesai</button><span class="tag" id="vTag"></span><button class="chip" id="vSave">Simpan</button></div>
+  <div class="vmain" id="vMain"></div>
+  <div class="strip" id="strip"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var cam=$('cam'),stage=$('stage');
+var S={stream:null,track:null,facing:'environment',mode:'foto',live:true,stab:true,res:1080,zoom:1,hwZoom:false,torch:false,timer:0,grid:false,rec:null,chunks:[],recT:0,busy:false};
+var items=[],cur=0;
+var PRE=14,POST=14,FPS=12;
+var ring=[],ringCv=document.createElement('canvas'),ringCtx=ringCv.getContext('2d');
+var off={x:0,y:0};
+
+function toast(t){var e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('show')},1600)}
+function vib(n){try{navigator.vibrate&&navigator.vibrate(n)}catch(e){}}
+
+/* ---------- Kamera ---------- */
+async function start(){
+  stop();
+  var h=S.res,w=Math.round(h*16/9);
+  var c={video:{facingMode:{ideal:S.facing},width:{ideal:w},height:{ideal:h},frameRate:{ideal:30}},audio:false};
+  try{
+    S.stream=await navigator.mediaDevices.getUserMedia(c);
+  }catch(e){
+    $('err').style.display='flex';
+    $('errMsg').textContent=(window.isSecureContext?'Kamera ditolak atau tidak ditemukan. Cek izin kamera di pengaturan browser.':'Halaman harus dibuka lewat HTTPS agar kamera bisa dipakai.');
+    return;
+  }
+  $('err').style.display='none';
+  cam.srcObject=S.stream;
+  S.track=S.stream.getVideoTracks()[0];
+  var cap=S.track.getCapabilities?S.track.getCapabilities():{};
+  S.hwZoom=!!cap.zoom;
+  S.canTorch=!!cap.torch;
+  var st=S.track.getSettings();
+  $('tInfo').textContent=(st.height||h)+'p · '+Math.round(st.frameRate||30)+'fps';
+  cam.style.transform='scaleX('+(S.facing==='user'?-1:1)+')';
+  setZoom(1);
+  ring=[];
+}
+function stop(){if(S.stream){S.stream.getTracks().forEach(function(t){t.stop()});S.stream=null}}
+
+async function setZoom(z){
+  S.zoom=z;
+  document.querySelectorAll('#zoom button').forEach(function(b){b.classList.toggle('on',+b.dataset.z===z)});
+  if(S.hwZoom&&S.track){
+    var cap=S.track.getCapabilities().zoom;
+    try{await S.track.applyConstraints({advanced:[{zoom:Math.min(cap.max,Math.max(cap.min,z))}]})}catch(e){}
+  }
+}
+
+/* ---------- Stabilizer (giroskop) ---------- */
+var last=0;
+window.addEventListener('devicemotion',function(e){
+  if(!S.stab||!e.rotationRate)return;
+  var t=performance.now(),dt=last?Math.min((t-last)/1000,.05):.016;last=t;
+  var r=e.rotationRate,k=5.5;
+  off.x=off.x*.86-(r.alpha||0)*dt*k*(S.facing==='user'?-1:1);
+  off.y=off.y*.86+(r.beta||0)*dt*k;
+  var m=cam.clientWidth*.04;
+  off.x=Math.max(-m,Math.min(m,off.x));off.y=Math.max(-m,Math.min(m,off.y));
+});
+function render(){
+  var sx=S.facing==='user'?-1:1;
+  var base=S.hwZoom?1:S.zoom;
+  var crop=S.stab?1.08:1;
+  var ox=S.stab?off.x:0,oy=S.stab?off.y:0;
+  cam.style.transform='translate('+ox.toFixed(1)+'px,'+oy.toFixed(1)+'px) scale('+(sx*base*crop).toFixed(3)+','+(base*crop).toFixed(3)+')';
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+/* ---------- Draw frame dengan crop/zoom/stabil ---------- */
+function drawFrame(ctx,W,H){
+  var vw=cam.videoWidth,vh=cam.videoHeight;if(!vw)return;
+  var tr=W/H,sr=vw/vh,sw,sh;
+  if(sr>tr){sh=vh;sw=vh*tr}else{sw=vw;sh=vw/tr}
+  var base=S.hwZoom?1:S.zoom,k=base*(S.stab?1.08:1);
+  sw/=k;sh/=k;
+  var cx=vw/2-(S.stab?off.x*(vw/cam.clientWidth)*(S.facing==='user'?-1:1):0),cy=vh/2-(S.stab?off.y*(vh/cam.clientHeight):0);
+  var sx=Math.min(vw-sw,Math.max(0,cx-sw/2)),sy=Math.min(vh-sh,Math.max(0,cy-sh/2));
+  ctx.save();
+  if(S.facing==='user'){ctx.translate(W,0);ctx.scale(-1,1)}
+  ctx.drawImage(cam,sx,sy,sw,sh,0,0,W,H);
+  ctx.restore();
+}
+function aspect(){return S.mode==='persegi'?1:(cam.videoWidth||16)/(cam.videoHeight||9)}
+
+/* ---------- Buffer Live Photo ---------- */
+setInterval(function(){
+  if(!S.live||S.mode==='video'||!S.stream||!cam.videoWidth||S.busy)return;
+  var W=540,H=Math.round(W/aspect());
+  ringCv.width=W;ringCv.height=H;
+  drawFrame(ringCtx,W,H);
+  ring.push(ringCtx.getImageData(0,0,W,H));
+  if(ring.length>PRE)ring.shift();
+},1000/FPS);
+
+/* ---------- Ambil foto ---------- */
+function shotFlash(){var f=$('flash');f.style.transition='none';f.style.opacity=.85;requestAnimationFrame(function(){f.style.transition='opacity .35s';f.style.opacity=0})}
+
+async function takePhoto(){
+  if(S.busy)return;S.busy=true;
+  var pre=S.live?ring.slice():[];
+  var W=cam.videoWidth,H=cam.videoHeight;
+  var ar=aspect();
+  if(ar<1.01&&ar>.99){W=H=Math.min(W,H)}else{}
+  var cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  drawFrame(cv.getContext('2d'),W,H);
+  shotFlash();vib(15);
+  var post=[];
+  if(S.live){
+    var tmp=document.createElement('canvas'),w=540,h=Math.round(w/(W/H));tmp.width=w;tmp.height=h;
+    var tc=tmp.getContext('2d');
+    $('tLive').textContent='LIVE ●';
+    for(var i=0;i<POST;i++){
+      await new Promise(function(r){setTimeout(r,1000/FPS)});
+      drawFrame(tc,w,h);post.push(tc.getImageData(0,0,w,h));
+    }
+    $('tLive').textContent='LIVE';
+  }
+  var blob=await new Promise(function(r){cv.toBlob(r,'image/jpeg',.95)});
+  addItem({type:'foto',blob:blob,url:URL.createObjectURL(blob),frames:pre.concat(post),w:W,h:H});
+  S.busy=false;
+}
+
+function countdown(fn){
+  if(!S.timer){fn();return}
+  var n=S.timer,el=$('timer');el.style.display='flex';el.textContent=n;
+  var iv=setInterval(function(){n--;if(n<=0){clearInterval(iv);el.style.display='none';fn()}else{el.textContent=n;vib(10)}},1000);
+}
+
+/* ---------- Video ---------- */
+async function toggleRec(){
+  if(S.rec){S.rec.stop();return}
+  var tracks=S.stream.getVideoTracks().slice();
+  try{var a=await navigator.mediaDevices.getUserMedia({audio:true});tracks.push(a.getAudioTracks()[0]);S.aud=a}catch(e){S.aud=null}
+  var ms=new MediaStream(tracks);
+  var mt=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'].filter(function(t){return MediaRecorder.isTypeSupported(t)})[0];
+  S.chunks=[];
+  S.rec=new MediaRecorder(ms,{mimeType:mt,videoBitsPerSecond:S.res>=2160?20e6:10e6});
+  S.rec.ondataavailable=function(e){if(e.data.size)S.chunks.push(e.data)};
+  S.rec.onstop=function(){
+    clearInterval(S.recIv);$('tRec').style.display='none';$('bShot').classList.remove('recording');
+    if(S.aud){S.aud.getTracks().forEach(function(t){t.stop()});S.aud=null}
+    var b=new Blob(S.chunks,{type:S.rec.mimeType});S.rec=null;
+    addItem({type:'video',blob:b,url:URL.createObjectURL(b),ext:mt.indexOf('mp4')>0?'mp4':'webm'});
+  };
+  S.rec.start(500);vib(20);
+  S.recT=Date.now();$('tRec').style.display='';$('bShot').classList.add('recording');
+  S.recIv=setInterval(function(){var s=Math.floor((Date.now()-S.recT)/1000);$('tRec').textContent='● '+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},500);
+}
+
+/* ---------- Galeri ---------- */
+function addItem(it){
+  items.push(it);cur=items.length-1;
+  var t=$('bThumb');
+  if(it.type==='foto'){t.style.backgroundImage='url('+it.url+')'}else{t.style.backgroundImage='none';t.style.background='#333'}
+  toast(it.type==='video'?'Video tersimpan di galeri':(it.frames.length?'Live Photo diambil':'Foto diambil'));
+}
+var liveTimer=null;
+function show(){
+  var it=items[cur],m=$('vMain');m.innerHTML='';clearInterval(liveTimer);
+  if(!it)return;
+  $('vTag').textContent=it.type==='video'?'VIDEO':(it.frames.length?'LIVE':'FOTO');
+  if(it.type==='video'){
+    var v=document.createElement('video');v.src=it.url;v.controls=true;v.playsInline=true;m.appendChild(v);
+  }else{
+    var img=document.createElement('img');img.src=it.url;m.appendChild(img);
+    if(it.frames.length){
+      var cv=document.createElement('canvas');cv.style.display='none';
+      var f0=it.frames[0];cv.width=f0.width;cv.height=f0.height;
+      var cx=cv.getContext('2d'),hint=document.createElement('div');hint.className='hint';hint.textContent='Tekan dan tahan untuk memutar Live Photo';
+      m.appendChild(cv);m.appendChild(hint);
+      var play=function(){var i=0;cv.style.display='block';img.style.visibility='hidden';liveTimer=setInterval(function(){cx.putImageData(it.frames[i%it.frames.length],0,0);i++;if(i>=it.frames.length)stopL()},1000/FPS)};
+      var stopL=function(){clearInterval(liveTimer);cv.style.display='none';img.style.visibility='visible'};
+      m.onpointerdown=function(){play();vib(8)};m.onpointerup=m.onpointercancel=m.onpointerleave=stopL;
+    }
+  }
+  var st=$('strip');st.innerHTML='';
+  items.forEach(function(x,i){var d=document.createElement('div');if(x.type==='foto')d.style.backgroundImage='url('+x.url+')';if(i===cur)d.className='on';d.onclick=function(){cur=i;show()};st.appendChild(d)});
+}
+$('bThumb').onclick=function(){if(!items.length){toast('Belum ada foto');return}$('viewer').classList.add('open');show()};
+$('vClose').onclick=function(){$('viewer').classList.remove('open');clearInterval(liveTimer);$('vMain').innerHTML=''};
+$('vSave').onclick=function(){
+  var it=items[cur];if(!it)return;
+  var a=document.createElement('a');a.href=it.url;
+  a.download='IMG_'+Date.now()+(it.type==='video'?'.'+it.ext:'.jpg');
+  document.body.appendChild(a);a.click();a.remove();toast('Disimpan ke unduhan');
+};
+
+/* ---------- Kontrol ---------- */
+$('bShot').onclick=function(){
+  if(!S.stream)return;
+  if(S.mode==='video'){toggleRec()}else{countdown(takePhoto)}
+};
+$('bFlip').onclick=function(){S.facing=S.facing==='user'?'environment':'user';start()};
+$('bStart').onclick=start;
+$('bLive').onclick=function(){S.live=!S.live;this.classList.toggle('on',S.live);this.textContent=S.live?'◎ LIVE':'◎ Mati';$('tLive').style.display=S.live&&S.mode!=='video'?'':'none';if(!S.live)ring=[]};
+$('bStab').onclick=function(){S.stab=!S.stab;this.classList.toggle('on',S.stab);this.textContent=S.stab?'Stabil':'Stabil mati';toast(S.stab?'Stabilizer aktif (crop 8%)':'Stabilizer mati')};
+$('bRes').onclick=function(){S.res=S.res===1080?2160:S.res===2160?720:1080;this.textContent=S.res===2160?'4K':S.res===1080?'HD':'720';start()};
+$('bFlash').onclick=async function(){
+  if(!S.canTorch){toast('Lampu tidak tersedia di kamera ini');return}
+  S.torch=!S.torch;this.textContent=S.torch?'⚡︎ Nyala':'⚡︎ Mati';this.classList.toggle('on',S.torch);
+  try{await S.track.applyConstraints({advanced:[{torch:S.torch}]})}catch(e){}
+};
+$('bMore').onclick=function(){
+  var s=prompt('Timer: 0, 3, atau 10 detik\n(Tambahkan "g" untuk grid, mis. 3g)',S.timer+(S.grid?'g':''));
+  if(s===null)return;
+  S.timer=parseInt(s)||0;if(![0,3,10].includes(S.timer))S.timer=0;
+  S.grid=/g/i.test(s);$('grid').classList.toggle('on',S.grid);
+  $('bMore').classList.toggle('on',S.timer>0||S.grid);toast('Timer '+(S.timer||'mati')+(S.grid?' · grid':''));
+};
+document.querySelectorAll('#zoom button').forEach(function(b){b.onclick=function(e){e.stopPropagation();setZoom(+b.dataset.z)}});
+document.querySelectorAll('#modes button').forEach(function(b){b.onclick=function(){
+  S.mode=b.dataset.m;
+  document.querySelectorAll('#modes button').forEach(function(x){x.classList.toggle('on',x===b)});
+  stage.classList.toggle('sq',S.mode==='persegi');
+  $('bShot').classList.toggle('vid',S.mode==='video');
+  $('tLive').style.display=S.live&&S.mode!=='video'?'':'none';
+  $('bLive').style.opacity=S.mode==='video'?.4:1;
+}});
+stage.addEventListener('click',function(e){
+  if(!S.stream)return;
+  var r=stage.getBoundingClientRect(),f=$('focus');
+  f.style.left=(e.clientX-r.left-35)+'px';f.style.top=(e.clientY-r.top-35)+'px';
+  f.classList.remove('show');void f.offsetWidth;f.classList.add('show');
+  setTimeout(function(){f.classList.remove('show')},1000);
+  try{S.track.applyConstraints({advanced:[{focusMode:'single-shot',pointsOfInterest:[{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height}]}]}).catch(function(){})}catch(x){}
+});
+/* pinch zoom */
+var pd=0;
+stage.addEventListener('touchmove',function(e){
+  if(e.touches.length!==2)return;
+  var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  if(pd){var z=Math.min(5,Math.max(1,S.zoom*(d/pd)));S.zoom=z;
+    if(S.hwZoom){var c=S.track.getCapabilities().zoom;S.track.applyConstraints({advanced:[{zoom:Math.min(c.max,z)}]}).catch(function(){})}
+    document.querySelectorAll('#zoom button').forEach(function(b){b.classList.remove('on')})}
+  pd=d;
+},{passive:true});
+stage.addEventListener('touchend',function(){pd=0});
+document.addEventListener('visibilitychange',function(){if(document.hidden)stop();else if(!$('err').style.display||$('err').style.display==='none')start()});
+start();
+})();
+</script>
+</body>
+</html>
